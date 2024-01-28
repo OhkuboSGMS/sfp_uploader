@@ -13,4 +13,5 @@ if __name__ == '__main__':
     parser.add_argument('--description', '-d', type=str, required=True, help='Description of the data')
 
     args = parser.parse_args()
-    publish(args.url, args.email, args.password, args.audio_file_path, args.title, args.description)
+    result = publish(args.url, args.email, args.password, args.audio_file_path, args.title, args.description)
+    print(f"Share URL: {result}")
