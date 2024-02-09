@@ -1,4 +1,6 @@
 import argparse
+import asyncio
+from datetime import datetime
 
 from .main import publish
 
@@ -11,7 +13,10 @@ if __name__ == '__main__':
     parser.add_argument('--audio_file_path', type=str, required=True, help='Path to the audio file')
     parser.add_argument('--title', '-t', type=str, required=True, help='Title of the data')
     parser.add_argument('--description', '-d', type=str, required=True, help='Description of the data')
-
+    parser.add_argument('--schedule', '-s', type=datetime.fromisoformat, help='Schedule of the data')
+    parser.add_argument('--explicit', '-e', action="store_true", help='Explicit of the data')
     args = parser.parse_args()
-    result = publish(args.url, args.email, args.password, args.audio_file_path, args.title, args.description)
+    result = asyncio.run(
+        publish(args.url, args.email, args.password, args.audio_file_path, args.title, args.description,
+                args.schedule, args.explicit))
     print(f"Share URL: {result}")
