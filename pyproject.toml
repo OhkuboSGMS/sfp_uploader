@@ -12,7 +12,7 @@ readme = "README.md"
 requires-python = ">= 3.8"
 
 [project.scripts]
-hello = "sfp_uploader:hello"
+test_upload = "sfp_uploader.test_upload:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -20,7 +20,10 @@ build-backend = "hatchling.build"
 
 [tool.rye]
 managed = true
-dev-dependencies = []
+dev-dependencies = [
+    "pydub>=0.25.1",
+    "python-dotenv>=1.0.1",
+]
 
 [tool.hatch.metadata]
 allow-direct-references = true
