@@ -3,9 +3,11 @@ from typing import Optional
 
 from playwright.async_api import async_playwright
 
+_publish_url = "https://podcasters.spotify.com/pod/dashboard/episodes"
+
 
 async def publish(url: str, email: str, password: str, audio_file: str, title: str, description: str,
-                  schedule: Optional[datetime] = None, explicit: bool = False):
+                  schedule: Optional[datetime] = None, explicit: bool = False, promotional: bool = False):
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=False)
         context = await browser.new_context()
@@ -44,13 +46,19 @@ async def publish(url: str, email: str, password: str, audio_file: str, title: s
                                                                                      force=True)
         else:
             # Publish now
-            await page.get_by_role("radio", name="Now").set_checked(True, force=True)
+            await page.get_by_role("radio", name="Now", exact=True).set_checked(True, force=True)
+        explicit_group = page.get_by_role("group", name="Explicit content (required)")
         if explicit:
             # エピソードのタイプ
-            await page.get_by_role("radio", name="Yes").set_checked(True, force=True)
+            await explicit_group.get_by_role("radio", name="Yes", exact=True).set_checked(True, force=True)
         else:
-            await page.get_by_role("radio", name="No").set_checked(True, force=True)
+            await explicit_group.get_by_role("radio", name="No", exact=True).set_checked(True, force=True)
 
+        promotional_group = page.get_by_role("group", name="Promotional content (required)")
+        if promotional:
+            await promotional_group.get_by_role("radio", name="Yes", exact=True).set_checked(True, force=True)
+        else:
+            await promotional_group.get_by_role("radio", name="No", exact=True).set_checked(True, force=True)
         # cookie ボタンの削除
         await page.get_by_label("Cookie banner").get_by_label("Close").click()
         await page.get_by_role("button", name="Next").click()
@@ -59,7 +67,7 @@ async def publish(url: str, email: str, password: str, audio_file: str, title: s
         # 公開
         await page.get_by_role("button", name="Publish").click()
 
-        await page.wait_for_url("https://podcasters.spotify.com/pod/dashboard/episodes")
+        await page.wait_for_url(_publish_url)
         await page.get_by_role("button", name="Copy link to your episode").click()
         share_url = await page.evaluate("navigator.clipboard.readText()")
         await page.close()
