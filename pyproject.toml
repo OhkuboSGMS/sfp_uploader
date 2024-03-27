@@ -1,6 +1,6 @@
 [project]
 name = "sfp-uploader"
-version = "0.1.1"
+version = "0.1.2"
 description = "Add your description here"
 authors = [
     { name = "OhkuboSGMS", email = "ginger.os777146th@gmail.com" }
@@ -23,8 +23,29 @@ managed = true
 dev-dependencies = [
     "pydub>=0.25.1",
     "python-dotenv>=1.0.1",
+    "ruff>=0.3.4",
+    "pydevd>=3.0.3",
 ]
+[tool.rye.scripts]
+check = { chain = ["ruff:check","ruff:format"] }
+"ruff:check" = "ruff check --select I --fix"
+"ruff:format" = "ruff format"
 
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+]
 [tool.hatch.metadata]
 allow-direct-references = true
 

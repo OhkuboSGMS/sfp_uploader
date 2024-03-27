@@ -1,9 +1,11 @@
 import asyncio
-import tempfile
-from sfp_uploader.main import publish
-from pydub import AudioSegment
 import os
+import tempfile
+
 from dotenv import load_dotenv
+from pydub import AudioSegment
+
+from sfp_uploader.main import publish
 
 
 async def main():
@@ -25,7 +27,7 @@ async def main():
         os.environ["PODCAST_PASSWORD"],
         temp_file,
         "test",
-        "test"
+        "test",
     )
     os.unlink(temp_file)
     print(share_url)
