@@ -19,9 +19,10 @@ async def publish(
     promotional: bool = False,
     thumbnail: Optional[str] = None,
     is_publish: bool = True,
+    timeout: int = 30*1000,
 ):
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=False)
+        browser = await p.chromium.launch(headless=False, timeout=timeout)
         context = await browser.new_context()
         # change language to English
         await context.add_cookies(
