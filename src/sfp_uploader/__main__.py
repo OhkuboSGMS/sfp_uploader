@@ -8,8 +8,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Process URL, email, password, and audio file path."
     )
-
-    parser.add_argument("--url", type=str, required=True, help="URL to process")
     parser.add_argument("--email", type=str, required=True, help="Email address")
     parser.add_argument("--password", type=str, required=True, help="Password")
     parser.add_argument(
@@ -21,6 +19,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--description", "-d", type=str, required=True, help="Description of the data"
     )
+    parser.add_argument("--url", type=str, required=False, help="URL to process",
+                        default="https://podcasters.spotify.com/pod/dashboard/episode/wizard")
     parser.add_argument(
         "--schedule", "-s", type=datetime.fromisoformat, help="Schedule of the data"
     )

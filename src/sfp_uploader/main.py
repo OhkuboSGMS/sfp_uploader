@@ -5,6 +5,7 @@ from typing import Optional
 from playwright.async_api import async_playwright
 
 _publish_url = "https://podcasters.spotify.com/pod/dashboard/episodes"
+_start_url = "https://podcasters.spotify.com/pod/dashboard/episode/wizard"
 
 
 async def publish(
@@ -42,12 +43,18 @@ async def publish(
         page = await context.new_page()
         # ログイン
         await page.goto(url)
-        await page.get_by_role("button", name="Continue", exact=True).click()
-        await page.get_by_role("textbox", name="Enter your email").fill(email)
-        await page.get_by_role("textbox", name="Enter your password").fill(password)
-        await page.get_by_role("button", name="Log in", exact=True).click()
-        # エピソードの追加
-        await page.get_by_role("link", name="New Episode").click()
+        await page.get_by_role("button", name="Continue with Spotify", exact=True).click()
+        # Spotifyのログインのlocale判定がAnchorとは異なり、日本語で表示される、変更方法が不明なため、日本語でログインする
+        await page.get_by_role("textbox", name="メールアドレスまたはユーザー名").fill(email)
+        await page.get_by_role("textbox", name="パスワードを設定してください。").fill(password)
+        await page.wait_for_timeout(1000)
+        await page.get_by_role("button", name="ログイン", exact=True).click()
+        await page.get_by_role("button", name="Continue to the app", exact=True).click()
+        # 何故かもう一度ボタンを押す必要があるので、もう一度押す
+        if page.url == "https://podcasters.spotify.com/pod/login?spotifyautherror=1":
+            print("認証失敗!")
+            return
+        # await page.get_by_role("link", name="New Episode").click()
         async with page.expect_file_chooser() as fc_info:
             await page.get_by_role("button", name="Select a file", exact=True).click()
         file_chooser = await fc_info.value

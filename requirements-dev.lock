@@ -9,10 +9,14 @@
 
 -e file:.
 greenlet==3.0.3
+    # via playwright
 playwright==1.41.0
+    # via sfp-uploader
 pydevd==3.0.3
 pydub==0.25.1
 pyee==11.0.1
+    # via playwright
 python-dotenv==1.0.1
 ruff==0.3.4
 typing-extensions==4.9.0
+    # via pyee

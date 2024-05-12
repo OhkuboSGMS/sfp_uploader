@@ -9,6 +9,10 @@
 
 -e file:.
 greenlet==3.0.3
+    # via playwright
 playwright==1.41.0
+    # via sfp-uploader
 pyee==11.0.1
+    # via playwright
 typing-extensions==4.9.0
+    # via pyee
