@@ -19,8 +19,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--description", "-d", type=str, required=True, help="Description of the data"
     )
-    parser.add_argument("--url", type=str, required=False, help="URL to process",
-                        default="https://podcasters.spotify.com/pod/dashboard/episode/wizard")
+    parser.add_argument(
+        "--url",
+        type=str,
+        required=False,
+        help="URL to process",
+        default="https://podcasters.spotify.com/pod/dashboard/episode/wizard",
+    )
     parser.add_argument(
         "--schedule", "-s", type=datetime.fromisoformat, help="Schedule of the data"
     )
@@ -34,6 +39,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--not_publish", "-np", action="store_false", help="Publish of the data"
     )
+    parser.add_argument("--html", action="store_true", help="HTML of the data")
     args = parser.parse_args()
     result = asyncio.run(
         publish(
@@ -48,6 +54,7 @@ if __name__ == "__main__":
             args.promotional,
             args.thumbnail,
             args.not_publish,
+            args.html,
         )
     )
     print(f"Share URL: {result}")

@@ -20,7 +20,8 @@ async def publish(
     promotional: bool = False,
     thumbnail: Optional[str] = None,
     is_publish: bool = True,
-    timeout: int = 30*1000,
+    is_html: bool = False,
+    timeout: int = 30 * 1000,
 ):
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=False)
@@ -43,10 +44,16 @@ async def publish(
         page = await context.new_page()
         # ログイン
         await page.goto(url)
-        await page.get_by_role("button", name="Continue with Spotify", exact=True).click()
+        await page.get_by_role(
+            "button", name="Continue with Spotify", exact=True
+        ).click()
         # Spotifyのログインのlocale判定がAnchorとは異なり、日本語で表示される、変更方法が不明なため、日本語でログインする
-        await page.get_by_role("textbox", name="メールアドレスまたはユーザー名").fill(email)
-        await page.get_by_role("textbox", name="パスワードを設定してください。").fill(password)
+        await page.get_by_role("textbox", name="メールアドレスまたはユーザー名").fill(
+            email
+        )
+        await page.get_by_role("textbox", name="パスワードを設定してください。").fill(
+            password
+        )
         await page.wait_for_timeout(1000)
         await page.get_by_role("button", name="ログイン", exact=True).click()
         await page.get_by_role("button", name="Continue to the app", exact=True).click()
@@ -55,15 +62,30 @@ async def publish(
             print("認証失敗!")
             return
         # await page.get_by_role("link", name="New Episode").click()
+        # Upload
         async with page.expect_file_chooser() as fc_info:
             await page.get_by_role("button", name="Select a file", exact=True).click()
         file_chooser = await fc_info.value
         await file_chooser.set_files(audio_file)
-        # 配信の詳細を設定
+
+        # 配信の詳細を設定 (Episode Details)
         await page.get_by_role("textbox", name="Title (required)", exact=True).fill(
             title
         )
-        await page.get_by_role("textbox", name="", exact=True).fill(description)
+        # htmlスイッチを設定(デフォルトはオフなので is_html=Trueの場合のみスイッチをオンにする)
+        if is_html:
+            await page.get_by_role("checkbox", name="HTML", exact=True).set_checked(
+                True, force=True
+            )
+            # htmlスイッチを押すとtextboxも変わる
+            await page.get_by_role(
+                "textbox",
+                name="What else do you want your audience to know?",
+                exact=True,
+            ).fill(description)
+        else:
+            await page.get_by_role("textbox", name="", exact=True).fill(description)
+
         # スケジュール
         if schedule:
             # Schedule
