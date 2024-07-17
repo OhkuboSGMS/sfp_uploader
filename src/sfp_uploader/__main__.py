@@ -55,6 +55,7 @@ if __name__ == "__main__":
             args.thumbnail,
             args.not_publish,
             args.html,
+            timeout=360*1000
         )
     )
     print(f"Share URL: {result}")

@@ -9,19 +9,19 @@ _start_url = "https://podcasters.spotify.com/pod/dashboard/episode/wizard"
 
 
 async def publish(
-    url: str,
-    email: str,
-    password: str,
-    audio_file: str,
-    title: str,
-    description: str,
-    schedule: Optional[datetime] = None,
-    explicit: bool = False,
-    promotional: bool = False,
-    thumbnail: Optional[str] = None,
-    is_publish: bool = True,
-    is_html: bool = False,
-    timeout: int = 30 * 1000,
+        url: str,
+        email: str,
+        password: str,
+        audio_file: str,
+        title: str,
+        description: str,
+        schedule: Optional[datetime] = None,
+        explicit: bool = False,
+        promotional: bool = False,
+        thumbnail: Optional[str] = None,
+        is_publish: bool = True,
+        is_html: bool = False,
+        timeout: int = 30 * 1000,
 ):
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=False)
@@ -56,7 +56,8 @@ async def publish(
         )
         await page.wait_for_timeout(1000)
         await page.get_by_role("button", name="ログイン", exact=True).click()
-        await page.get_by_role("button", name="Continue to the app", exact=True).click()
+        # TODO Continue to the app が出る場合と出ない場合がある
+        # await page.get_by_role("button", name="Continue to the app", exact=True).click()
         # 何故かもう一度ボタンを押す必要があるので、もう一度押す
         if page.url == "https://podcasters.spotify.com/pod/login?spotifyautherror=1":
             print("認証失敗!")
@@ -142,8 +143,8 @@ async def publish(
                 await additional_detail.click()
                 async with page.expect_file_chooser() as fc_info:
                     await page.get_by_role(
-                        "button", name="Episode cover art Change"
-                    ).click()
+                        "button", name="Add cover art"
+                    ).first.click()
                 file_chooser = await fc_info.value
                 await file_chooser.set_files(thumbnail)
                 thumbnail_dialog = page.get_by_role("dialog", name="image uploader")
