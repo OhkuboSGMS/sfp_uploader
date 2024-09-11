@@ -158,8 +158,10 @@ async def publish(
                 )
 
         await page.get_by_role("button", name="Next").click()
+        await page.wait_for_timeout(2000)
         # 投票機能など
         await page.get_by_role("button", name="Next").click()
+        await page.wait_for_timeout(2000)
         if is_publish:
             # 公開
             await page.get_by_role("button", name="Publish").click()
