@@ -144,7 +144,7 @@ async def publish(
                 await additional_detail.click()
                 async with page.expect_file_chooser() as fc_info:
                     await page.get_by_role(
-                        "button", name="Add cover art"
+                        "button", name="Change"
                     ).first.click()
                 file_chooser = await fc_info.value
                 await file_chooser.set_files(thumbnail)

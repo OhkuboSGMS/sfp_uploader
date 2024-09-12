@@ -1,6 +1,6 @@
 [project]
 name = "sfp-uploader"
-version = "0.2.3"
+version = "0.2.4"
 description = "Add your description here"
 authors = [
     { name = "OhkuboSGMS", email = "ginger.os777146th@gmail.com" }
