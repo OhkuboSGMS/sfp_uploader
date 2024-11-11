@@ -9,24 +9,25 @@ _start_url = "https://podcasters.spotify.com/pod/dashboard/episode/wizard"
 
 
 async def publish(
-        url: str,
-        email: str,
-        password: str,
-        audio_file: str,
-        title: str,
-        description: str,
-        schedule: Optional[datetime] = None,
-        explicit: bool = False,
-        promotional: bool = False,
-        thumbnail: Optional[str] = None,
-        is_publish: bool = True,
-        is_html: bool = False,
-        timeout: int = 30 * 1000,
+    url: str,
+    email: str,
+    password: str,
+    audio_file: str,
+    title: str,
+    description: str,
+    schedule: Optional[datetime] = None,
+    explicit: bool = False,
+    promotional: bool = False,
+    thumbnail: Optional[str] = None,
+    is_publish: bool = True,
+    is_html: bool = False,
+    timeout: int = 30 * 1000,
 ):
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=False)
         context = await browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36")
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+        )
         context.set_default_timeout(timeout=timeout)
         # change language to English
         await context.add_cookies(
@@ -64,6 +65,10 @@ async def publish(
             print("認証失敗!")
             return
         # await page.get_by_role("link", name="New Episode").click()
+        await page.wait_for_load_state(
+            "networkidle"
+        )  # ネットワークのリクエストがアイドル状態になるまで待機
+
         # Upload
         async with page.expect_file_chooser() as fc_info:
             await page.get_by_role("button", name="Select a file", exact=True).click()
@@ -114,11 +119,7 @@ async def publish(
         if explicit:
             # エピソードのタイプ
             await explicit_group.get_by_role(
-                "radio", name="Yes", exact=True
-            ).set_checked(True, force=True)
-        else:
-            await explicit_group.get_by_role(
-                "radio", name="No", exact=True
+                "checkbox", name="Yes", exact=True
             ).set_checked(True, force=True)
 
         promotional_group = page.get_by_role(
@@ -143,9 +144,7 @@ async def publish(
             if os.path.exists(thumbnail):
                 await additional_detail.click()
                 async with page.expect_file_chooser() as fc_info:
-                    await page.get_by_role(
-                        "button", name="Change"
-                    ).first.click()
+                    await page.get_by_role("button", name="Change").first.click()
                 file_chooser = await fc_info.value
                 await file_chooser.set_files(thumbnail)
                 thumbnail_dialog = page.get_by_role("dialog", name="image uploader")
