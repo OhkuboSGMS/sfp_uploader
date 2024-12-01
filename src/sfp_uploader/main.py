@@ -4,8 +4,8 @@ from typing import Optional
 
 from playwright.async_api import async_playwright
 
-_publish_url = "https://podcasters.spotify.com/pod/dashboard/episodes"
-_start_url = "https://podcasters.spotify.com/pod/dashboard/episode/wizard"
+_publish_url = "https://creators.spotify.com/pod/dashboard/episodes"
+_start_url = "https://creators.spotify.com/pod/dashboard/episode/wizard"
 
 
 async def publish(
@@ -36,6 +36,11 @@ async def publish(
                     "name": "sp_locale",
                     "value": "en",
                     "url": "https://podcasters.spotify.com/",
+                },
+                {
+                    "name": "sp_locale",
+                    "value": "en",
+                    "url": "https://creators.spotify.com/",
                 }
             ]
         )
@@ -66,7 +71,7 @@ async def publish(
             return
         # await page.get_by_role("link", name="New Episode").click()
         await page.wait_for_load_state(
-            "networkidle"
+            "load"
         )  # ネットワークのリクエストがアイドル状態になるまで待機
 
         # Upload
@@ -93,28 +98,6 @@ async def publish(
         else:
             await page.get_by_role("textbox", name="", exact=True).fill(description)
 
-        # スケジュール
-        if schedule:
-            # Schedule
-            await page.get_by_role("radio", name="Schedule").set_checked(
-                True, force=True
-            )
-            mdy = schedule.strftime("%m/%d/%Y")
-            await page.get_by_role("textbox", name="Date").fill(mdy, force=True)
-            await page.get_by_role("textbox", name="Hour picker").fill(
-                schedule.strftime("%H"), force=True
-            )
-            await page.get_by_role("textbox", name="Minute picker").fill(
-                schedule.strftime("%M"), force=True
-            )
-            await page.get_by_role("combobox", name="Meridiem picker").select_option(
-                schedule.strftime("%p"), force=True
-            )
-        else:
-            # Publish now
-            await page.get_by_role("radio", name="Now", exact=True).set_checked(
-                True, force=True
-            )
         explicit_group = page.get_by_role("group", name="Explicit content (required)")
         if explicit:
             # エピソードのタイプ
@@ -128,11 +111,11 @@ async def publish(
         if promotional:
             await promotional_group.get_by_role(
                 "radio", name="Yes", exact=True
-            ).set_checked(True, force=True)
+            ).check(force=True)
         else:
             await promotional_group.get_by_role(
                 "radio", name="No", exact=True
-            ).set_checked(True, force=True)
+            ).check(force=True)
         additional_detail = page.get_by_role(
             "button", name="Additional details (optional)"
         )
@@ -157,20 +140,42 @@ async def publish(
                 )
 
         await page.get_by_role("button", name="Next").click()
-        await page.wait_for_timeout(2000)
-        # 投票機能など
-        await page.get_by_role("button", name="Next").click()
-        await page.wait_for_timeout(2000)
-        if is_publish:
-            # 公開
-            await page.get_by_role("button", name="Publish").click()
-
-            await page.wait_for_url(_publish_url)
-            await page.get_by_role("button", name="Copy link to your episode").click()
-            share_url = await page.evaluate("navigator.clipboard.readText()")
+        # schedule
+        # スケジュール
+        if schedule:
+            # Schedule
+            await page.get_by_role("radio", name="Schedule").set_checked(
+                True, force=True
+            )
+            mdy = schedule.strftime("%m/%d/%Y")
+            await page.get_by_role("textbox", name="Date").fill(mdy, force=True)
+            await page.get_by_role("textbox", name="Hour picker").fill(
+                schedule.strftime("%H"), force=True
+            )
+            await page.get_by_role("textbox", name="Minute picker").fill(
+                schedule.strftime("%M"), force=True
+            )
+            await page.get_by_role("combobox", name="Meridiem picker").select_option(
+                schedule.strftime("%p"), force=True
+            )
         else:
-            print("Skip publish")
-            share_url = "Not Published."
+            # Publish now
+            await page.get_by_role("radio", name="Now", exact=True).set_checked(
+                True, force=True
+            )
+        await page.wait_for_timeout(2000)
+        # # 投票機能など
+        # await page.get_by_role("button", name="Next").click()
+        # await page.wait_for_timeout(2000)
+        # if is_publish:
+        # 公開
+        await page.get_by_role("button", name="Publish").click()
+        await page.wait_for_url(_publish_url)
+        await page.get_by_role("button", name="Copy link to your episode").click()
+        share_url = await page.evaluate("navigator.clipboard.readText()")
+        # else:
+        #     print("Skip publish")
+        #     share_url = "Not Published."
         await page.close()
         await context.close()
         await browser.close()
