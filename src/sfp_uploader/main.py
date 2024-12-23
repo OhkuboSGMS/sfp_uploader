@@ -110,10 +110,6 @@ async def publish(
         )
         if promotional:
             await promotional_group.get_by_role(
-                "radio", name="Yes", exact=True
-            ).check(force=True)
-        else:
-            await promotional_group.get_by_role(
                 "radio", name="No", exact=True
             ).check(force=True)
         additional_detail = page.get_by_role(
@@ -122,10 +118,10 @@ async def publish(
         # サムネイル差し替え時のボタンがcookieバナーに被って押せないので
         # 先にcookie ボタンの削除
         await page.get_by_label("Cookie banner").get_by_label("Close").click()
+        # await additional_detail.click()
         # サムネイルを差し替え
         if thumbnail:
             if os.path.exists(thumbnail):
-                await additional_detail.click()
                 async with page.expect_file_chooser() as fc_info:
                     await page.get_by_role("button", name="Change").first.click()
                 file_chooser = await fc_info.value
