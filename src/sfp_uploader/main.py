@@ -44,9 +44,9 @@ async def publish(
                 }
             ]
         )
-        await context.grant_permissions(
-            ["clipboard-read", "clipboard-write", "accessibility-events"]
-        )
+        # await context.grant_permissions(
+        #     ["clipboard-read", "clipboard-write", "accessibility-events"]
+        # )
 
         page = await context.new_page()
         # ログイン
