@@ -126,9 +126,9 @@ async def publish(
                     await page.get_by_role("button", name="Change").first.click()
                 file_chooser = await fc_info.value
                 await file_chooser.set_files(thumbnail)
-                thumbnail_dialog = page.get_by_role("dialog", name="image uploader")
+                # thumbnail_dialog = page.get_by_role("dialog", name="image uploader")
                 # 確定
-                await thumbnail_dialog.get_by_role("button", name="Save").click()
+                await page.get_by_role("button", name="Save").click()
 
             else:
                 print(
