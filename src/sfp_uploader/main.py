@@ -1,9 +1,9 @@
 import os
 from datetime import datetime
+from random import random
 from typing import Optional
 
 from playwright.async_api import async_playwright
-
 _publish_url = "https://creators.spotify.com/pod/dashboard/episodes"
 _start_url = "https://creators.spotify.com/pod/dashboard/episode/wizard"
 
@@ -21,10 +21,15 @@ async def publish(
     thumbnail: Optional[str] = None,
     is_publish: bool = True,
     is_html: bool = False,
+    skip_login: bool = False,
     timeout: int = 30 * 1000,
 ):
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=False)
+        # 自分が使っているChromeを使う場合
+        # browser = await p.chromium.connect_over_cdp("http://localhost:9222")
+        # context = browser.contexts[0]
+        # page = context.pages[0]
+        browser = await p.chromium.launch(headless=False,channel='chrome')
         context = await browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
         )
@@ -44,35 +49,38 @@ async def publish(
                 }
             ]
         )
-        # await context.grant_permissions(
-        #     ["clipboard-read", "clipboard-write", "accessibility-events"]
-        # )
+        await context.grant_permissions(
+            ["clipboard-read", "clipboard-write"]
+        )
 
         page = await context.new_page()
         # ログイン
         await page.goto(url)
-        await page.get_by_role(
-            "button", name="Continue with Spotify", exact=True
-        ).click()
-        # Spotifyのログインのlocale判定がAnchorとは異なり、日本語で表示される、変更方法が不明なため、日本語でログインする
-        await page.get_by_role("textbox", name="メールアドレスまたはユーザー名").fill(
-            email
-        )
-        await page.get_by_role("textbox", name="パスワードを設定してください。").fill(
-            password
-        )
-        await page.wait_for_timeout(1000)
-        await page.get_by_role("button", name="ログイン", exact=True).click()
-        # TODO Continue to the app が出る場合と出ない場合がある
-        # await page.get_by_role("button", name="Continue to the app", exact=True).click()
-        # 何故かもう一度ボタンを押す必要があるので、もう一度押す
-        if page.url == "https://podcasters.spotify.com/pod/login?spotifyautherror=1":
-            print("認証失敗!")
-            return
-        # await page.get_by_role("link", name="New Episode").click()
-        await page.wait_for_load_state(
-            "load"
-        )  # ネットワークのリクエストがアイドル状態になるまで待機
+        if not skip_login:
+            await page.get_by_role(
+                "button", name="Continue with Spotify", exact=True
+            ).click()
+            # Spotifyのログインのlocale判定がAnchorとは異なり、日本語で表示される、変更方法が不明なため、日本語でログインする
+            await page.get_by_role("textbox", name="メールアドレスまたはユーザー名").fill(
+                email
+            )
+            await page.get_by_role("button", name="次へ", exact=True).click()
+            await page.wait_for_timeout(100)
+            await page.get_by_role("button", name="パスワードでログイン", exact=True).click()
+
+            await page.get_by_role("textbox", name="パスワードを設定してください。").fill(
+                password
+            )
+            await page.wait_for_timeout(1000)
+            await page.get_by_role("button", name="ログイン", exact=True).click()
+            # await page.get_by_role("button", name="Continue to the app", exact=True).click()
+            # 何故かもう一度ボタンを押す必要があるので、もう一度押す
+            if page.url == "https://podcasters.spotify.com/pod/login?spotifyautherror=1":
+                print("認証失敗!")
+                return
+            await page.get_by_role("link", name="New Episode").click()
+        # ネットワークのリクエストがアイドル状態になるまで待機
+        await page.wait_for_load_state("load")
 
         # Upload
         async with page.expect_file_chooser() as fc_info:
@@ -117,7 +125,8 @@ async def publish(
         )
         # サムネイル差し替え時のボタンがcookieバナーに被って押せないので
         # 先にcookie ボタンの削除
-        await page.get_by_label("Cookie banner").get_by_label("Close").click()
+        if not skip_login:
+            await page.get_by_label("Cookie banner").get_by_label("Close").click()
         # await additional_detail.click()
         # サムネイルを差し替え
         if thumbnail:
@@ -166,9 +175,14 @@ async def publish(
         # if is_publish:
         # 公開
         await page.get_by_role("button", name="Publish").click()
-        await page.wait_for_url(_publish_url)
-        await page.get_by_role("button", name="Copy link to your episode").click()
-        share_url = await page.evaluate("navigator.clipboard.readText()")
+        #old :"https://creators.spotify.com/pod/dashboard/episodes"
+        #new https://creators.spotify.com/pod/show/6MbtpFOYhvAgZDoj0w2wkc/episodes
+        await page.wait_for_url("**/episodes")
+        # 共有ボタンが出てくるまで待つ
+        await page.wait_for_load_state("load")
+        await page.get_by_role("button", name="Copy").click(force=True)
+        share_url = await page.evaluate("async () => await navigator.clipboard.readText()")
+        await page.wait_for_timeout(1000)
         # else:
         #     print("Skip publish")
         #     share_url = "Not Published."
