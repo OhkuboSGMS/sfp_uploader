@@ -56,6 +56,7 @@ async def publish(
         page = await context.new_page()
         # ログイン
         await page.goto(url)
+
         if not skip_login:
             await page.get_by_role(
                 "button", name="Continue with Spotify", exact=True
@@ -64,11 +65,13 @@ async def publish(
             await page.get_by_role("textbox", name="メールアドレスまたはユーザー名").fill(
                 email
             )
+            await page.wait_for_timeout(2000)
+
             await page.get_by_role("button", name="次へ", exact=True).click()
-            await page.wait_for_timeout(100)
+            await page.wait_for_timeout(1000)
             await page.get_by_role("button", name="パスワードでログイン", exact=True).click()
 
-            await page.get_by_role("textbox", name="パスワードを設定してください。").fill(
+            await page.get_by_role("textbox", name="パスワード").fill(
                 password
             )
             await page.wait_for_timeout(1000)
