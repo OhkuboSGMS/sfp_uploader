@@ -61,13 +61,14 @@ async def publish(
             await page.get_by_role(
                 "button", name="Continue with Spotify", exact=True
             ).click()
+            await page.wait_for_timeout(1000)
             # Spotifyのログインのlocale判定がAnchorとは異なり、日本語で表示される、変更方法が不明なため、日本語でログインする
             await page.get_by_role("textbox", name="メールアドレスまたはユーザー名").fill(
                 email
             )
             await page.wait_for_timeout(2000)
 
-            await page.get_by_role("button", name="次へ", exact=True).click()
+            await page.get_by_role("button", name="続行", exact=True).click()
             await page.wait_for_timeout(1000)
             await page.get_by_role("button", name="パスワードでログイン", exact=True).click()
 
