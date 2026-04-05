@@ -28,8 +28,11 @@ async def main():
         temp_file,
         "test",
         "test",
+        cdp_url="http://localhost:9222",
+        skip_login=True,
     )
     os.unlink(temp_file)
     print(share_url)
 
-    asyncio.run(main())
+
+asyncio.run(main())
