@@ -57,6 +57,26 @@ async def _save_error_info(page: Page, error: Exception):
         logger.error(f"Failed to save error info: {e}")
 
 
+async def _set_file_via_cdp(context, page, file_path: str):
+    """CDP DevTools Protocolで直接ファイルパスを設定（50MB制限回避）"""
+    cdp_session = await context.new_cdp_session(page)
+    try:
+        file_input = page.locator('input[type="file"]')
+        await file_input.wait_for(state="attached", timeout=10000)
+        element_handle = await file_input.element_handle()
+        remote_object = await cdp_session.send("DOM.describeNode", {
+            "objectId": element_handle._impl_obj._remote_object["objectId"]
+        })
+        backend_node_id = remote_object["node"]["backendNodeId"]
+        await cdp_session.send("DOM.setFileInputFiles", {
+            "files": [os.path.abspath(file_path)],
+            "backendNodeId": backend_node_id,
+        })
+        await file_input.dispatch_event("change")
+    finally:
+        await cdp_session.detach()
+
+
 _DEFAULT_CDP_PORT = 9222
 _DEFAULT_USER_DATA_DIR = os.path.join(os.path.expanduser("~"), ".sfp_uploader", "chrome_profile")
 
@@ -275,10 +295,8 @@ async def publish(
             audio_file = os.path.abspath(audio_file)
             logger.info(f"Uploading audio file: {audio_file}")
             if cdp_url:
-                # CDPモード: set_filesの50MB制限を回避するため、
-                # input[type=file]に直接ファイルパスを設定する
-                file_input = page.locator('input[type="file"]')
-                await file_input.set_input_files(audio_file)
+                # CDPモード: 50MB制限回避
+                await _set_file_via_cdp(context, page, audio_file)
             else:
                 async with page.expect_file_chooser() as fc_info:
                     await page.get_by_role("button", name="Select a file", exact=True).click()
@@ -327,8 +345,7 @@ async def publish(
                     if cdp_url:
                         await page.get_by_role("button", name="Change").first.click()
                         await page.wait_for_timeout(500)
-                        file_input = page.locator('input[type="file"]')
-                        await file_input.set_input_files(os.path.abspath(thumbnail))
+                        await _set_file_via_cdp(context, page, thumbnail)
                     else:
                         async with page.expect_file_chooser() as fc_info:
                             await page.get_by_role("button", name="Change").first.click()
