@@ -40,6 +40,12 @@ if __name__ == "__main__":
         "--not_publish", "-np", action="store_false", help="Publish of the data"
     )
     parser.add_argument("--html", action="store_true", help="HTML of the data")
+    parser.add_argument(
+        "--cdp_url",
+        type=str,
+        default=None,
+        help="CDP URL to connect to existing Chrome (e.g. http://localhost:9222). Skips login when set.",
+    )
     args = parser.parse_args()
     result = asyncio.run(
         publish(
@@ -55,8 +61,9 @@ if __name__ == "__main__":
             "",#args.thumbnail,
             args.not_publish,
             args.html,
-            False,
+            skip_login=bool(args.cdp_url),
             timeout=360 * 1000,
+            cdp_url=args.cdp_url,
         )
     )
     print(f"Share URL: {result}")
