@@ -59,18 +59,20 @@ async def _save_error_info(page: Page, error: Exception):
 
 async def _set_file_via_cdp(context, page, file_path: str):
     """CDP DevTools Protocolで直接ファイルパスを設定（50MB制限回避）"""
+    abs_path = os.path.abspath(file_path)
     cdp_session = await context.new_cdp_session(page)
     try:
         file_input = page.locator('input[type="file"]')
         await file_input.wait_for(state="attached", timeout=10000)
-        element_handle = await file_input.element_handle()
-        remote_object = await cdp_session.send("DOM.describeNode", {
-            "objectId": element_handle._impl_obj._remote_object["objectId"]
+        # JavaScript経由でDOM.getDocumentとquerySelector でbackendNodeIdを取得
+        doc = await cdp_session.send("DOM.getDocument")
+        node = await cdp_session.send("DOM.querySelector", {
+            "nodeId": doc["root"]["nodeId"],
+            "selector": 'input[type="file"]',
         })
-        backend_node_id = remote_object["node"]["backendNodeId"]
         await cdp_session.send("DOM.setFileInputFiles", {
-            "files": [os.path.abspath(file_path)],
-            "backendNodeId": backend_node_id,
+            "files": [abs_path],
+            "nodeId": node["nodeId"],
         })
         await file_input.dispatch_event("change")
     finally:
