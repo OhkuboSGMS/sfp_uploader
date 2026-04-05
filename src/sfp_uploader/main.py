@@ -272,11 +272,18 @@ async def publish(
             await _screenshot(page, "07_upload_page_loaded")
 
             # Upload
+            audio_file = os.path.abspath(audio_file)
             logger.info(f"Uploading audio file: {audio_file}")
-            async with page.expect_file_chooser() as fc_info:
-                await page.get_by_role("button", name="Select a file", exact=True).click()
-            file_chooser = await fc_info.value
-            await file_chooser.set_files(audio_file)
+            if cdp_url:
+                # CDPモード: set_filesの50MB制限を回避するため、
+                # input[type=file]に直接ファイルパスを設定する
+                file_input = page.locator('input[type="file"]')
+                await file_input.set_input_files(audio_file)
+            else:
+                async with page.expect_file_chooser() as fc_info:
+                    await page.get_by_role("button", name="Select a file", exact=True).click()
+                file_chooser = await fc_info.value
+                await file_chooser.set_files(audio_file)
             await page.wait_for_timeout(2000)
             await _screenshot(page, "08_file_selected")
 
@@ -317,10 +324,16 @@ async def publish(
             # サムネイルを差し替え
             if thumbnail:
                 if os.path.exists(thumbnail):
-                    async with page.expect_file_chooser() as fc_info:
+                    if cdp_url:
                         await page.get_by_role("button", name="Change").first.click()
-                    file_chooser = await fc_info.value
-                    await file_chooser.set_files(thumbnail)
+                        await page.wait_for_timeout(500)
+                        file_input = page.locator('input[type="file"]')
+                        await file_input.set_input_files(os.path.abspath(thumbnail))
+                    else:
+                        async with page.expect_file_chooser() as fc_info:
+                            await page.get_by_role("button", name="Change").first.click()
+                        file_chooser = await fc_info.value
+                        await file_chooser.set_files(thumbnail)
                     # thumbnail_dialog = page.get_by_role("dialog", name="image uploader")
                     # 確定
                     await page.get_by_role("button", name="Save").click()
