@@ -1,8 +1,14 @@
 import logging
 import os
 import re
+import shutil
+import subprocess
+import time
 from datetime import datetime
 from typing import Optional
+
+from urllib.request import urlopen
+from urllib.error import URLError
 
 from playwright.async_api import Page, async_playwright
 
@@ -51,6 +57,67 @@ async def _save_error_info(page: Page, error: Exception):
         logger.error(f"Failed to save error info: {e}")
 
 
+_DEFAULT_CDP_PORT = 9222
+_DEFAULT_USER_DATA_DIR = os.path.join(os.path.expanduser("~"), ".sfp_uploader", "chrome_profile")
+
+
+def _find_chrome() -> Optional[str]:
+    """Chromeの実行ファイルパスを探す"""
+    candidates = [
+        shutil.which("chrome"),
+        shutil.which("google-chrome"),
+        shutil.which("google-chrome-stable"),
+        # Windows
+        os.path.join(os.environ.get("PROGRAMFILES", ""), "Google", "Chrome", "Application", "chrome.exe"),
+        os.path.join(os.environ.get("PROGRAMFILES(X86)", ""), "Google", "Chrome", "Application", "chrome.exe"),
+        # macOS
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    ]
+    for c in candidates:
+        if c and os.path.isfile(c):
+            return c
+    return None
+
+
+def _is_cdp_running(port: int = _DEFAULT_CDP_PORT) -> bool:
+    """CDPポートが応答するか確認"""
+    try:
+        with urlopen(f"http://localhost:{port}/json/version", timeout=2) as resp:
+            return resp.status == 200
+    except (URLError, OSError):
+        return False
+
+
+def launch_chrome(port: int = _DEFAULT_CDP_PORT, user_data_dir: Optional[str] = None) -> subprocess.Popen:
+    """CDPデバッグポート付きでChromeを起動する"""
+    chrome_path = _find_chrome()
+    if not chrome_path:
+        raise RuntimeError(
+            "Chrome not found. Please install Google Chrome or pass cdp_url manually."
+        )
+
+    data_dir = user_data_dir or _DEFAULT_USER_DATA_DIR
+    os.makedirs(data_dir, exist_ok=True)
+
+    cmd = [
+        chrome_path,
+        f"--remote-debugging-port={port}",
+        f"--user-data-dir={data_dir}",
+    ]
+    logger.info(f"Launching Chrome: {' '.join(cmd)}")
+    proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    # CDPが応答するまで待つ
+    for _ in range(30):
+        if _is_cdp_running(port):
+            logger.info(f"Chrome CDP ready on port {port}")
+            return proc
+        time.sleep(0.5)
+
+    proc.kill()
+    raise RuntimeError(f"Chrome launched but CDP did not respond on port {port}")
+
+
 async def publish(
     url: str,
     email: str,
@@ -74,6 +141,15 @@ async def publish(
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
     _init_screenshot_dir(screenshot_dir)
+    chrome_proc = None
+    if cdp_url == "auto":
+        # CDPポートが既に空いていればそのまま接続、なければChromeを起動
+        if _is_cdp_running(_DEFAULT_CDP_PORT):
+            logger.info("Existing Chrome CDP found, reusing")
+        else:
+            chrome_proc = launch_chrome(_DEFAULT_CDP_PORT)
+        cdp_url = f"http://localhost:{_DEFAULT_CDP_PORT}"
+
     async with async_playwright() as p:
         if cdp_url:
             # 既存のChromeに接続（ログイン済みセッションを利用）

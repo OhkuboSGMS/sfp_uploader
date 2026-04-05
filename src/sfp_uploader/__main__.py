@@ -6,19 +6,19 @@ from sfp_uploader.main import publish
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Process URL, email, password, and audio file path."
+        description="Publish podcast episodes to Spotify for Creators."
     )
-    parser.add_argument("--email", type=str, required=True, help="Email address")
-    parser.add_argument("--password", type=str, required=True, help="Password")
     parser.add_argument(
         "--audio_file_path", type=str, required=True, help="Path to the audio file"
     )
     parser.add_argument(
-        "--title", "-t", type=str, required=True, help="Title of the data"
+        "--title", "-t", type=str, required=True, help="Title of the episode"
     )
     parser.add_argument(
-        "--description", "-d", type=str, required=True, help="Description of the data"
+        "--description", "-d", type=str, required=True, help="Description of the episode"
     )
+    parser.add_argument("--email", type=str, default="", help="Email address (required for non-CDP login)")
+    parser.add_argument("--password", type=str, default="", help="Password (required for non-CDP login)")
     parser.add_argument(
         "--url",
         type=str,
@@ -43,10 +43,16 @@ if __name__ == "__main__":
     parser.add_argument(
         "--cdp_url",
         type=str,
-        default=None,
-        help="CDP URL to connect to existing Chrome (e.g. http://localhost:9222). Skips login when set.",
+        default="auto",
+        help="CDP URL (default: 'auto' = launch/reuse Chrome automatically). "
+             "Set to 'none' to use fresh browser with login flow.",
     )
     args = parser.parse_args()
+
+    cdp_url = args.cdp_url
+    if cdp_url == "none":
+        cdp_url = None
+
     result = asyncio.run(
         publish(
             args.url,
@@ -61,9 +67,9 @@ if __name__ == "__main__":
             "",#args.thumbnail,
             args.not_publish,
             args.html,
-            skip_login=bool(args.cdp_url),
+            skip_login=bool(cdp_url),
             timeout=360 * 1000,
-            cdp_url=args.cdp_url,
+            cdp_url=cdp_url,
         )
     )
     print(f"Share URL: {result}")
